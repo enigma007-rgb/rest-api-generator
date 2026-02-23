@@ -22,6 +22,10 @@ This project is designed for teams: developers run the generator and receive a c
 - JPA relationship scaffolding in entities (`@ManyToOne`, `@OneToMany`, `@ManyToMany`, join table hints)
 - Strict spec validation (relationship targets, field constraints, naming)
 - Enhanced validation extraction (`min/max`, `valid email`, enum constraints) with DTO annotation mapping
+- Global error-handling scaffold generation (`GlobalExceptionHandler`, `ErrorResponse`, `ResourceNotFoundException`)
+- Pagination/sorting/filtering method scaffolding in repository/service/controller layers
+- MapStruct mapper generation (`<Entity>Mapper`) for DTO <-> entity conversion
+- Spring Data repository scaffolding (`JpaRepository` + `JpaSpecificationExecutor`) with pageable query flow
 - YAML configuration (`.rest-api-generator.yml`)
 - Template-pack support with starter packs and fallback resolution
 - OpenAPI export command (`openapi`) for prompt-to-spec docs output
@@ -63,6 +67,48 @@ curl -X POST http://localhost:8080/generator/code \
 ```
 
 The generator returns only the ZIP response artifact for generated code. It does not write generated source into this generator project's source tree.
+
+### Advanced Multi-Entity Example (Relationships + Validations)
+
+Generate a richer spec with relationships and constraints:
+
+```bash
+curl -X POST http://localhost:8080/generator/spec \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt":"Create an API for Category with:
+- name (string, required, unique)
+
+Create an API for Product with:
+- name (string, required, min 2, max 100)
+- price (decimal, required, min 0, max 10000)
+- status (string, enum: ACTIVE, INACTIVE)
+- ownerEmail (string, required, valid email)
+- belongs to Category
+- has many Tag (many-to-many)
+
+Create an API for Tag with:
+- name (string, required, unique)"
+  }' \
+  -o spec.json
+```
+
+Generate code ZIP from that spec:
+
+```bash
+curl -X POST http://localhost:8080/generator/code \
+  -H "Content-Type: application/json" \
+  --data-binary @spec.json \
+  -o scaffold.zip
+```
+
+Quick verification:
+
+```bash
+unzip -p scaffold.zip src/main/java/com/example/generated/entity/Product.java
+unzip -p scaffold.zip src/main/java/com/example/generated/dto/ProductDTO.java
+unzip -p scaffold.zip src/main/java/com/example/generated/error/GlobalExceptionHandler.java
+```
 
 5. Try full example prompts:
 

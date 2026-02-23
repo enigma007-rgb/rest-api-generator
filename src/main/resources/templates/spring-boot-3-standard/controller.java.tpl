@@ -1,9 +1,17 @@
 package ${basePackage}.controller;
 
-import ${basePackage}.entity.${entityName};
+import ${basePackage}.dto.${dtoClass};
 import ${collaboratorImport};
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+@RestController
+@RequestMapping("${resourcePath}")
 public class ${className} {
 
     private final ${collaboratorClass} collaborator;
@@ -12,11 +20,24 @@ public class ${className} {
         this.collaborator = collaborator;
     }
 
-    public List<${entityName}> list() {
-        return collaborator.findAll();
+    @GetMapping
+    public Page<${dtoClass}> list() {
+        return collaborator.findAll(0, 20, "id", "asc", null);
     }
 
-    public void create(${entityName} entity) {
+    @GetMapping("/search")
+    public Page<${dtoClass}> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String filter
+    ) {
+        return collaborator.findAll(page, size, sortBy, sortDir, filter);
+    }
+
+    @PostMapping
+    public ${dtoClass} create(@RequestBody ${dtoClass} entity) {
         ${createCall}
     }
 }

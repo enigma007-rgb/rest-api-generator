@@ -1,18 +1,10 @@
 package ${basePackage}.repository;
 
 import ${basePackage}.entity.${entityName};
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
 
-public class ${className} {
-
-    private final List<${entityName}> store = new ArrayList<>();
-
-    public List<${entityName}> findAll() {
-        return new ArrayList<>(store);
-    }
-
-    public void save(${entityName} entity) {
-        store.add(entity);
-    }
+@Repository
+public interface ${className} extends JpaRepository<${entityName}, Long>, JpaSpecificationExecutor<${entityName}> {
 }

@@ -34,6 +34,7 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
         String controllerSuffix = context.config().standards().naming().controllerSuffix();
         String serviceSuffix = context.config().standards().naming().serviceSuffix();
         String repositorySuffix = context.config().standards().naming().repositorySuffix();
+        String dtoSuffix = context.config().standards().naming().dtoSuffix();
         boolean useServiceLayer = context.config().standards().layering().includeServiceLayer();
 
         for (EntityDefinition definition : specification.entities) {
@@ -41,13 +42,16 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
             String collaboratorClass = entityName + (useServiceLayer ? serviceSuffix : repositorySuffix);
             String collaboratorPackage = basePackage + (useServiceLayer ? ".service." : ".repository.") + collaboratorClass;
             String className = entityName + controllerSuffix;
-            String createCall = useServiceLayer ? "collaborator.create(entity);" : "collaborator.save(entity);";
+            String createCall = useServiceLayer ? "return collaborator.create(entity);" : "throw new UnsupportedOperationException(\"Service layer required for DTO create flow\");";
+            String dtoClass = entityName + dtoSuffix;
             String content = context.templates().render(
                     context.templatePack().templatePath("controller.java.tpl"),
                     Map.of(
                             "basePackage", basePackage,
                             "entityName", entityName,
+                            "dtoClass", dtoClass,
                             "className", className,
+                            "resourcePath", definition.api.resourcePath,
                             "collaboratorImport", collaboratorPackage,
                             "collaboratorClass", collaboratorClass,
                             "createCall", createCall

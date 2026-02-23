@@ -1,22 +1,47 @@
 package ${basePackage}.service;
 
+import ${basePackage}.dto.${dtoClass};
 import ${basePackage}.entity.${entityName};
+import ${basePackage}.mapper.${mapperClass};
 import ${basePackage}.repository.${repositoryClass};
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Service
+@Transactional
 public class ${className} {
 
     private final ${repositoryClass} repository;
+    private final ${mapperClass} mapper;
 
-    public ${className}(${repositoryClass} repository) {
+    public ${className}(${repositoryClass} repository, ${mapperClass} mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
-    public List<${entityName}> findAll() {
-        return repository.findAll();
+    public Page<${dtoClass}> findAll(int page, int size, String sortBy, String sortDir, String filter) {
+        Sort sort = "desc".equalsIgnoreCase(sortDir) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), sort);
+        Specification<${entityName}> spec = buildSpecification(filter);
+        return repository.findAll(spec, pageable).map(mapper::toDto);
     }
 
-    public void create(${entityName} entity) {
-        repository.save(entity);
+    public ${dtoClass} create(${dtoClass} dto) {
+        ${entityName} entity = mapper.toEntity(dto);
+        ${entityName} saved = repository.save(entity);
+        return mapper.toDto(saved);
+    }
+
+    private Specification<${entityName}> buildSpecification(String filter) {
+        if (filter == null || filter.isBlank()) {
+            return Specification.where(null);
+        }
+        return (root, query, cb) ->
+                cb.like(cb.lower(root.get("id").as(String.class)), "%" + filter.toLowerCase() + "%");
     }
 }

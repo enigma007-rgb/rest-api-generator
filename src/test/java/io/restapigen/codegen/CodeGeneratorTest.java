@@ -46,12 +46,24 @@ class CodeGeneratorTest {
 
         Set<String> entries = new HashSet<>();
         String readme = null;
+        String controller = null;
+        String service = null;
+        String repository = null;
+        String mapper = null;
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zip))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 entries.add(entry.getName());
                 if ("README.md".equals(entry.getName())) {
                     readme = readAll(zis);
+                } else if ("src/main/java/com/example/generated/controller/ProductController.java".equals(entry.getName())) {
+                    controller = readAll(zis);
+                } else if ("src/main/java/com/example/generated/service/ProductService.java".equals(entry.getName())) {
+                    service = readAll(zis);
+                } else if ("src/main/java/com/example/generated/repository/ProductRepository.java".equals(entry.getName())) {
+                    repository = readAll(zis);
+                } else if ("src/main/java/com/example/generated/mapper/ProductMapper.java".equals(entry.getName())) {
+                    mapper = readAll(zis);
                 }
                 zis.closeEntry();
             }
@@ -63,6 +75,10 @@ class CodeGeneratorTest {
         assertTrue(entries.contains("src/main/java/com/example/generated/controller/ProductController.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/service/ProductService.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/dto/ProductDTO.java"));
+        assertTrue(entries.contains("src/main/java/com/example/generated/mapper/ProductMapper.java"));
+        assertTrue(entries.contains("src/main/java/com/example/generated/error/ErrorResponse.java"));
+        assertTrue(entries.contains("src/main/java/com/example/generated/error/ResourceNotFoundException.java"));
+        assertTrue(entries.contains("src/main/java/com/example/generated/error/GlobalExceptionHandler.java"));
         assertTrue(entries.contains("src/test/java/com/example/generated/integration/ProductIntegrationTest.java"));
         assertTrue(entries.contains("src/main/resources/openapi.yaml"));
         assertTrue(entries.contains("Dockerfile"));
@@ -70,6 +86,10 @@ class CodeGeneratorTest {
         assertTrue(readme != null);
         assertTrue(readme.contains("Generated REST API entries"));
         assertTrue(readme.contains("Resource path: /api/products"));
+        assertTrue(controller != null && controller.contains("@GetMapping(\"/search\")"));
+        assertTrue(service != null && service.contains("mapper.toEntity(dto)"));
+        assertTrue(repository != null && repository.contains("extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product>"));
+        assertTrue(mapper != null && mapper.contains("@Mapper(componentModel = \"spring\")"));
     }
 
     @Test
