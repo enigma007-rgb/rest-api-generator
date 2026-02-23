@@ -19,6 +19,7 @@ public final class BuiltInPlugins {
                 new TestGeneratorPlugin(),
                 new MigrationGeneratorPlugin(),
                 new DocumentationGeneratorPlugin(),
+                new DockerGeneratorPlugin(),
                 new SecurityGeneratorPlugin()
         );
     }

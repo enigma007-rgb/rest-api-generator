@@ -8,6 +8,7 @@ import io.restapigen.core.plugin.PluginLoader;
 import io.restapigen.core.template.TemplatePack;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.generator.parser.SpecInputExtractor;
+import io.restapigen.output.openapi.OpenApiWriter;
 import io.restapigen.output.json.JsonSpecificationWriter;
 import io.restapigen.server.RestApiGeneratorServer;
 
@@ -79,6 +80,10 @@ public final class Main {
 
         PromptParser parser = new NaturalLanguagePromptParser();
         ApiSpecification spec = parser.parse(userRequest, config);
+        if (cliArgs.mode == CliMode.OPENAPI_EXPORT) {
+            System.out.print(OpenApiWriter.write(spec));
+            return;
+        }
         String json = JsonSpecificationWriter.writeApiSpecification(spec, cliArgs.pretty);
         System.out.print(json);
     }
@@ -99,7 +104,8 @@ public final class Main {
         INIT_CONFIG,
         VALIDATE_CONFIG,
         TEMPLATE_LIST,
-        PLUGIN_LIST
+        PLUGIN_LIST,
+        OPENAPI_EXPORT
     }
 
     static final class CliArgs {
@@ -147,6 +153,7 @@ public final class Main {
                 case "generate" -> parseForMode(CliMode.GENERATE, argList, 1);
                 case "serve" -> parseForMode(CliMode.SERVE, argList, 1);
                 case "validate" -> parseForMode(CliMode.VALIDATE_CONFIG, argList, 1);
+                case "openapi" -> parseForMode(CliMode.OPENAPI_EXPORT, argList, 1);
                 case "templates" -> {
                     if (argList.size() > 1 && "list".equalsIgnoreCase(argList.get(1))) {
                         yield new CliArgs(CliMode.TEMPLATE_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, false);
@@ -221,7 +228,7 @@ public final class Main {
                 }
             }
 
-            if (mode == CliMode.GENERATE
+            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT)
                     && (userRequest == null || userRequest.isBlank()) && inputFile == null && System.console() != null) {
                 System.err.println("No input provided. Use --user-request, --input, or pipe stdin.");
                 printHelpAndExit(2);
@@ -272,7 +279,7 @@ public final class Main {
                 }
             }
 
-            if (mode == CliMode.GENERATE
+            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT)
                     && (userRequest == null || userRequest.isBlank())
                     && inputFile == null
                     && System.console() != null) {
@@ -307,6 +314,7 @@ public final class Main {
                       ./gradlew run --args="serve --port 8080"
                       ./gradlew run --args="init --config .rest-api-generator.yml --template spring-boot-3-standard"
                       ./gradlew run --args="validate --config .rest-api-generator.yml"
+                      ./gradlew run --args="openapi --prompt \\"Create API for User with email\\""
                       ./gradlew run --args="templates list"
                       ./gradlew run --args="plugins list --config .rest-api-generator.yml"
                       cat prompt.txt | ./gradlew run

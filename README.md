@@ -22,6 +22,8 @@ This project is designed for teams: developers run the generator and receive a c
 - Strict spec validation (relationship targets, field constraints, naming)
 - YAML configuration (`.rest-api-generator.yml`)
 - Template-pack support with starter packs and fallback resolution
+- OpenAPI export command (`openapi`) for prompt-to-spec docs output
+- Docker scaffold generation (`Dockerfile`, `docker-compose.yml`)
 - HTTP API endpoints:
   - `POST /generator/spec`
   - `POST /generator/code`
@@ -72,6 +74,7 @@ The generator returns only the ZIP response artifact for generated code. It does
 ```bash
 ./gradlew run --args="generate --prompt 'Create API for User with email, password' --pretty"
 ./gradlew run --args="generate --file ./prompt.txt --pretty"
+./gradlew run --args="openapi --prompt 'Create API for User with email, password'"
 ./gradlew run --args="init --config .rest-api-generator.yml --template spring-boot-3-standard"
 ./gradlew run --args="validate --config .rest-api-generator.yml"
 ./gradlew run --args="templates list"
@@ -96,6 +99,7 @@ Legacy flags still work:
 Plugin extension fields:
 - `plugins.externalDirectories`: directories scanned for plugin JARs (default `plugins`)
 - `plugins.externalClassNames`: explicit class names to instantiate as plugins
+- `features.dockerArtifacts`: include Docker artifacts in generated ZIP output
 
 ## Template packs
 
@@ -113,5 +117,6 @@ Runtime templates:
 - Phase-2 implementation details: `docs/PHASE2-IMPLEMENTATION.md`
 - Phase-3 implementation details: `docs/PHASE3-IMPLEMENTATION.md`
 - Phase-4 implementation details: `docs/PHASE4-IMPLEMENTATION.md`
+- Phase-5 implementation details: `docs/PHASE5-IMPLEMENTATION.md`
 - Publish checklist: `docs/PUBLISH-CHECKLIST.md`
 - Enterprise blueprint and deliverables mapping: `docs/ENTERPRISE-BLUEPRINT.md`

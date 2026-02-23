@@ -5,6 +5,7 @@
 2. Verify CLI smoke flows:
    - `./gradlew -q run --args="templates list"`
    - `./gradlew -q run --args="plugins list --config .rest-api-generator.yml"`
+   - `./gradlew -q run --args="openapi --prompt \"Create API for User with email\""`
 3. Verify HTTP flow:
    - start server: `./gradlew run --args="serve --port 8080"`
    - generate spec with `POST /generator/spec`
@@ -15,6 +16,7 @@
    - `docs/PHASE2-IMPLEMENTATION.md`
    - `docs/PHASE3-IMPLEMENTATION.md`
    - `docs/PHASE4-IMPLEMENTATION.md`
+   - `docs/PHASE5-IMPLEMENTATION.md`
 5. Confirm schemas match runtime:
    - `schemas/rest-api-generator-config.schema.json`
    - `schemas/api-specification.schema.json`

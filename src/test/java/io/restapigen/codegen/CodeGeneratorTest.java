@@ -65,6 +65,8 @@ class CodeGeneratorTest {
         assertTrue(entries.contains("src/main/java/com/example/generated/dto/ProductDTO.java"));
         assertTrue(entries.contains("src/test/java/com/example/generated/integration/ProductIntegrationTest.java"));
         assertTrue(entries.contains("src/main/resources/openapi.yaml"));
+        assertTrue(entries.contains("Dockerfile"));
+        assertTrue(entries.contains("docker-compose.yml"));
         assertTrue(readme != null);
         assertTrue(readme.contains("Generated REST API entries"));
         assertTrue(readme.contains("Resource path: /api/products"));

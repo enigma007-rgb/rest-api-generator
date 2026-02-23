@@ -113,7 +113,8 @@
         "auditing": {"type": "boolean"},
         "softDelete": {"type": "boolean"},
         "versioning": {"type": "boolean"},
-        "caching": {"type": "boolean"}
+        "caching": {"type": "boolean"},
+        "dockerArtifacts": {"type": "boolean"}
       }
     },
     "plugins": {

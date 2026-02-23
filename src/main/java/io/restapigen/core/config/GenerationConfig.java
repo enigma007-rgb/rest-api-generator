@@ -192,9 +192,15 @@ public record GenerationConfig(
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record FeaturesConfig(boolean auditing, boolean softDelete, boolean versioning, boolean caching) {
+    public record FeaturesConfig(
+            boolean auditing,
+            boolean softDelete,
+            boolean versioning,
+            boolean caching,
+            boolean dockerArtifacts
+    ) {
         static FeaturesConfig defaults() {
-            return new FeaturesConfig(true, false, false, false);
+            return new FeaturesConfig(true, false, false, false, true);
         }
     }
 
@@ -215,7 +221,8 @@ public record GenerationConfig(
                     "controller-generator",
                     "test-generator",
                     "migration-generator",
-                    "documentation-generator"
+                    "documentation-generator",
+                    "docker-generator"
             ) : List.copyOf(enabled);
             disabled = disabled == null ? List.of("security-generator") : List.copyOf(disabled);
             externalDirectories = externalDirectories == null ? List.of("plugins") : List.copyOf(externalDirectories);
@@ -232,7 +239,8 @@ public record GenerationConfig(
                     "controller-generator",
                     "test-generator",
                     "migration-generator",
-                    "documentation-generator"
+                    "documentation-generator",
+                    "docker-generator"
             ), List.of("security-generator"), List.of("plugins"), List.of());
         }
 
