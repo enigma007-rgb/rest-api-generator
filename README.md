@@ -35,6 +35,11 @@ This project is designed for teams: developers run the generator and receive a c
   - `POST /generator/spec`
   - `POST /generator/code`
 
+## Requirements
+
+- Java 17+ and Gradle available on the machine.
+- Generated ZIP projects can be unzipped and opened directly in an IDE (no Spring Initializr step required).
+
 ## Quick start
 
 1. Build/test:
