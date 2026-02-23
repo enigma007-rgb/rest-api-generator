@@ -106,6 +106,45 @@ class CodeGeneratorTest {
     }
 
     @Test
+    void generatesJpaRelationshipAnnotationsInEntity() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "shop-api",
+                "com.example.generated",
+                List.of(
+                        new EntityDefinition(
+                                new EntitySpec("Category", "categories", "Long", List.of()),
+                                new ApiSpec("/api/categories", true, true, true),
+                                List.of(new RelationshipSpec("OneToMany", "Product", "productList"))
+                        ),
+                        new EntityDefinition(
+                                new EntitySpec("Product", "products", "Long", List.of()),
+                                new ApiSpec("/api/products", true, true, true),
+                                List.of(
+                                        new RelationshipSpec("ManyToOne", "Category", "category"),
+                                        new RelationshipSpec("ManyToMany", "Tag", "tagList")
+                                )
+                        ),
+                        new EntityDefinition(
+                                new EntitySpec("Tag", "tags", "Long", List.of()),
+                                new ApiSpec("/api/tags", true, true, true),
+                                List.of()
+                        )
+                ),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String productEntity = zipFiles.get("src/main/java/com/example/generated/entity/Product.java");
+
+        assertTrue(productEntity != null);
+        assertTrue(productEntity.contains("@ManyToOne"));
+        assertTrue(productEntity.contains("@JoinColumn(name = \"category_id\")"));
+        assertTrue(productEntity.contains("@ManyToMany"));
+        assertTrue(productEntity.contains("@JoinTable(name = \"product_tag\""));
+    }
+
+    @Test
     void includesExternalClassPluginOutputWhenEnabled() throws IOException {
         ApiSpecification spec = new ApiSpecification(
                 "products-api",
@@ -137,6 +176,37 @@ class CodeGeneratorTest {
         Map<String, String> zipFiles = readZipFiles(zip);
         assertTrue(zipFiles.containsKey("CUSTOM_PLUGIN.txt"));
         assertTrue(zipFiles.get("CUSTOM_PLUGIN.txt").contains("loaded:products-api"));
+    }
+
+    @Test
+    void generatesDtoWithMappedValidationAnnotations() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "users-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("User", "users", "Long", List.of(
+                                new FieldSpec("email", "String", List.of("NotBlank", "Email"), true, false, null, null, "email", false, List.of(), null, null),
+                                new FieldSpec("age", "Integer", List.of("Min:18", "Max:120"), false, false, 18, 120, null, false, List.of(), null, null),
+                                new FieldSpec("price", "BigDecimal", List.of("DecimalMin:0", "DecimalMax:500"), false, false, 0, 500, null, false, List.of(), null, null),
+                                new FieldSpec("status", "String", List.of("OneOf:ACTIVE|INACTIVE"), false, false, null, null, null, false, List.of("ACTIVE", "INACTIVE"), null, null)
+                        )),
+                        new ApiSpec("/api/users", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String dto = zipFiles.get("src/main/java/com/example/generated/dto/UserDTO.java");
+
+        assertTrue(dto != null);
+        assertTrue(dto.contains("@Email"));
+        assertTrue(dto.contains("@Min(18)"));
+        assertTrue(dto.contains("@Max(120)"));
+        assertTrue(dto.contains("@DecimalMin(\"0\")"));
+        assertTrue(dto.contains("@DecimalMax(\"500\")"));
+        assertTrue(dto.contains("@Pattern(regexp = \"^(ACTIVE|INACTIVE)$\")"));
     }
 
     private String readAll(ZipInputStream zis) throws IOException {

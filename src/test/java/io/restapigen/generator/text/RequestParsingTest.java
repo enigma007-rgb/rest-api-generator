@@ -3,6 +3,7 @@ package io.restapigen.generator.text;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RequestParsingTest {
     @Test
@@ -24,5 +25,15 @@ class RequestParsingTest {
         assertEquals("Category", relations.get(0).target());
         assertEquals("OneToMany", relations.get(1).type());
         assertEquals("ManyToMany", relations.get(2).type());
+    }
+
+    @Test
+    void parsesValidationHintsWithoutColon() {
+        String request = "Create API for User with fields: age (integer min 18 max 120), email (string valid email), status (enum ACTIVE, INACTIVE).";
+        var fields = RequestParsing.extractFields(request);
+
+        assertTrue(fields.stream().anyMatch(field -> "age".equals(field.name()) && Integer.valueOf(18).equals(field.min()) && Integer.valueOf(120).equals(field.max())));
+        assertTrue(fields.stream().anyMatch(field -> "email".equals(field.name()) && "email".equalsIgnoreCase(field.format())));
+        assertTrue(fields.stream().anyMatch(field -> "status".equals(field.name()) && field.enumValues().size() == 2));
     }
 }

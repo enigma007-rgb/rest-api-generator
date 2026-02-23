@@ -19,7 +19,9 @@ This project is designed for teams: developers run the generator and receive a c
 - Plugin-based generation pipeline (`entity`, `dto`, `repository`, `service`, `controller`, `test`, `migration`, `docs`, `security` placeholder)
 - Multi-entity prompt parsing (separate entities with blank lines)
 - Relationship parsing (`belongs to`, `has many`, `many-to-many`)
+- JPA relationship scaffolding in entities (`@ManyToOne`, `@OneToMany`, `@ManyToMany`, join table hints)
 - Strict spec validation (relationship targets, field constraints, naming)
+- Enhanced validation extraction (`min/max`, `valid email`, enum constraints) with DTO annotation mapping
 - YAML configuration (`.rest-api-generator.yml`)
 - Template-pack support with starter packs and fallback resolution
 - OpenAPI export command (`openapi`) for prompt-to-spec docs output
@@ -110,13 +112,3 @@ Pack descriptors:
 
 Runtime templates:
 - `src/main/resources/templates/spring-boot-3-standard/`
-
-## Architecture and roadmap
-
-- Phase-1 implementation details: `docs/PHASE1-IMPLEMENTATION.md`
-- Phase-2 implementation details: `docs/PHASE2-IMPLEMENTATION.md`
-- Phase-3 implementation details: `docs/PHASE3-IMPLEMENTATION.md`
-- Phase-4 implementation details: `docs/PHASE4-IMPLEMENTATION.md`
-- Phase-5 implementation details: `docs/PHASE5-IMPLEMENTATION.md`
-- Publish checklist: `docs/PUBLISH-CHECKLIST.md`
-- Enterprise blueprint and deliverables mapping: `docs/ENTERPRISE-BLUEPRINT.md`

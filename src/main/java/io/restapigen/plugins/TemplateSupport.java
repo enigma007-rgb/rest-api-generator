@@ -1,6 +1,7 @@
 package io.restapigen.plugins;
 
 import io.restapigen.domain.FieldSpec;
+import io.restapigen.domain.RelationshipSpec;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -15,6 +16,27 @@ final class TemplateSupport {
     );
 
     private TemplateSupport() {
+    }
+
+    static Set<String> collectEntityImports(List<FieldSpec> fields, List<RelationshipSpec> relationships) {
+        Set<String> imports = new LinkedHashSet<>();
+        imports.add("jakarta.persistence.Entity");
+        imports.add("jakarta.persistence.Table");
+        imports.add("jakarta.persistence.ManyToOne");
+        imports.add("jakarta.persistence.OneToOne");
+        imports.add("jakarta.persistence.OneToMany");
+        imports.add("jakarta.persistence.ManyToMany");
+        imports.add("jakarta.persistence.JoinColumn");
+        imports.add("jakarta.persistence.JoinTable");
+        imports.add("jakarta.persistence.FetchType");
+        imports.add("jakarta.persistence.CascadeType");
+
+        imports.addAll(collectImports(fields));
+        if (hasCollectionRelationship(relationships)) {
+            imports.add("java.util.List");
+            imports.add("java.util.ArrayList");
+        }
+        return imports;
     }
 
     static Set<String> collectImports(List<FieldSpec> fields) {
@@ -64,6 +86,45 @@ final class TemplateSupport {
         return out.toString();
     }
 
+    static String relationshipBlock(String ownerClassName, List<RelationshipSpec> relationships) {
+        StringBuilder out = new StringBuilder();
+        for (RelationshipSpec relationship : relationships) {
+            String target = relationship.target;
+            String fieldName = relationship.fieldName;
+            switch (relationship.type) {
+                case "ManyToOne" -> {
+                    out.append("    @ManyToOne(fetch = FetchType.LAZY)\n");
+                    out.append("    @JoinColumn(name = \"").append(fieldName).append("_id\")\n");
+                    out.append("    private ").append(target).append(" ").append(fieldName).append(";\n\n");
+                }
+                case "OneToOne" -> {
+                    out.append("    @OneToOne(fetch = FetchType.LAZY)\n");
+                    out.append("    @JoinColumn(name = \"").append(fieldName).append("_id\")\n");
+                    out.append("    private ").append(target).append(" ").append(fieldName).append(";\n\n");
+                }
+                case "OneToMany" -> {
+                    out.append("    @OneToMany(mappedBy = \"")
+                            .append(decapitalize(ownerClassName))
+                            .append("\", cascade = {CascadeType.PERSIST, CascadeType.MERGE})\n");
+                    out.append("    private List<").append(target).append("> ").append(fieldName).append(" = new ArrayList<>();\n\n");
+                }
+                case "ManyToMany" -> {
+                    String joinTable = toSnakeCase(ownerClassName) + "_" + toSnakeCase(target);
+                    String sourceColumn = toSnakeCase(ownerClassName) + "_id";
+                    String targetColumn = toSnakeCase(target) + "_id";
+                    out.append("    @ManyToMany\n");
+                    out.append("    @JoinTable(name = \"").append(joinTable).append("\",\n");
+                    out.append("            joinColumns = @JoinColumn(name = \"").append(sourceColumn).append("\"),\n");
+                    out.append("            inverseJoinColumns = @JoinColumn(name = \"").append(targetColumn).append("\"))\n");
+                    out.append("    private List<").append(target).append("> ").append(fieldName).append(" = new ArrayList<>();\n\n");
+                }
+                default -> {
+                }
+            }
+        }
+        return out.toString();
+    }
+
     static String classFile(String pkg, String className, Set<String> imports, String body) {
         StringBuilder out = new StringBuilder();
         out.append("package ").append(pkg).append(";\n\n");
@@ -84,5 +145,30 @@ final class TemplateSupport {
             return input;
         }
         return Character.toUpperCase(input.charAt(0)) + input.substring(1);
+    }
+
+    private static boolean hasCollectionRelationship(List<RelationshipSpec> relationships) {
+        for (RelationshipSpec relationship : relationships) {
+            if ("OneToMany".equals(relationship.type) || "ManyToMany".equals(relationship.type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String decapitalize(String input) {
+        if (input == null || input.isBlank()) {
+            return input;
+        }
+        return Character.toLowerCase(input.charAt(0)) + input.substring(1);
+    }
+
+    private static String toSnakeCase(String input) {
+        if (input == null || input.isBlank()) {
+            return input;
+        }
+        return input
+                .replaceAll("([a-z])([A-Z])", "$1_$2")
+                .toLowerCase();
     }
 }

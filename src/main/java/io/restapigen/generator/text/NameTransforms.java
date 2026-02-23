@@ -71,7 +71,10 @@ public final class NameTransforms {
         if (trimmed.isEmpty()) {
             return List.of();
         }
-        String normalized = trimmed.replace('-', ' ').replace('_', ' ');
+        String normalized = trimmed
+                .replaceAll("([a-z0-9])([A-Z])", "$1 $2")
+                .replace('-', ' ')
+                .replace('_', ' ');
         String[] tokens = normalized.split("\\s+");
         List<String> parts = new ArrayList<>();
         for (String token : tokens) {

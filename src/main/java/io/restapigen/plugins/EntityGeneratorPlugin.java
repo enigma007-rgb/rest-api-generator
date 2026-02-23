@@ -30,15 +30,17 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
         String javaBase = "src/main/java/" + context.basePackagePath();
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + context.config().standards().naming().entitySuffix();
-            Set<String> imports = TemplateSupport.collectImports(definition.entity.fields);
+            Set<String> imports = TemplateSupport.collectEntityImports(definition.entity.fields, definition.relationships);
             String content = context.templates().render(
                     context.templatePack().templatePath("entity.java.tpl"),
                     Map.of(
                             "basePackage", basePackage,
                             "entityName", definition.entity.name,
                             "className", className,
+                            "tableName", definition.entity.table,
                             "imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n")),
                             "fieldsBlock", TemplateSupport.fieldsBlock(definition.entity.fields),
+                            "relationshipBlock", TemplateSupport.relationshipBlock(definition.entity.name, definition.relationships),
                             "constructorBlock", TemplateSupport.constructorBlock(className, definition.entity.fields),
                             "gettersBlock", TemplateSupport.gettersBlock(definition.entity.fields)
                     )

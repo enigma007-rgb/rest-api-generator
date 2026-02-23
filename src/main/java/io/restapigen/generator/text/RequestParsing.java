@@ -12,8 +12,9 @@ public final class RequestParsing {
     private static final Pattern ENTITY_API_FOR = Pattern.compile("(?i)\\bapi\\s+for\\s+(?:an?\\s+|the\\s+)?([A-Za-z][A-Za-z0-9_-]*)\\b");
     private static final Pattern ENTITY_MANAGE = Pattern.compile("(?i)\\bmanage\\s+(?:an?\\s+|the\\s+)?([A-Za-z][A-Za-z0-9_-]*)\\b");
     private static final Pattern BULLET_FIELD = Pattern.compile("(?m)^\\s*[-*]\\s*([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9]*)?\\s*(.*)$");
+    private static final Pattern BULLET_FIELD_PAREN = Pattern.compile("(?m)^\\s*[-*]\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\(([^)\\n\\r]+)\\)\\s*([^\\n\\r]*)$");
     private static final Pattern WITH_FIELDS = Pattern.compile("(?i)\\bwith\\b\\s+([^\\n\\r.]+)");
-    private static final Pattern INLINE_TYPED = Pattern.compile("(?i)\\b([a-z][a-z0-9_]*)\\s*\\(\\s*([A-Za-z][A-Za-z0-9]*)\\s*\\)");
+    private static final Pattern INLINE_TYPED = Pattern.compile("(?i)\\b([A-Za-z][A-Za-z0-9_]*)\\s*\\(\\s*([A-Za-z][A-Za-z0-9]*)\\s*\\)");
     private static final Pattern SEGMENT_SPLIT = Pattern.compile("(?m)(?:\\r?\\n){2,}");
     private static final Pattern BELONGS_TO = Pattern.compile("(?i)\\bbelongs\\s+to\\s+([A-Za-z][A-Za-z0-9_]*)\\b");
     private static final Pattern HAS_MANY = Pattern.compile("(?i)\\bhas\\s+many\\s+([A-Za-z][A-Za-z0-9_]*)(?:\\s*\\(([^)]+)\\))?");
@@ -57,24 +58,16 @@ public final class RequestParsing {
             return out;
         }
 
-        Matcher bullet = BULLET_FIELD.matcher(request);
-        while (bullet.find()) {
-            String name = bullet.group(1);
-            String type = bullet.group(2);
-            String tail = bullet.group(3) == null ? "" : bullet.group(3);
-            out.add(new ParsedField(
-                    name,
-                    type,
-                    containsNullable(tail),
-                    containsUnique(tail),
-                    extractMin(tail),
-                    extractMax(tail),
-                    extractFormat(tail),
-                    containsEncrypted(tail),
-                    extractEnumValues(tail),
-                    extractDefault(tail),
-                    extractCalculated(tail)
-            ));
+        for (String rawLine : request.split("\\R")) {
+            String line = rawLine.trim();
+            if (!(line.startsWith("-") || line.startsWith("*"))) {
+                continue;
+            }
+            String token = line.substring(1).trim();
+            ParsedField parsed = parseSimpleFieldToken(token);
+            if (parsed != null) {
+                out.add(parsed);
+            }
         }
 
         Matcher withFields = WITH_FIELDS.matcher(request);
@@ -181,13 +174,34 @@ public final class RequestParsing {
 
     private static List<String> splitFieldList(String list) {
         String normalized = list.replace(" and ", ",");
-        String[] parts = normalized.split(",");
         List<String> out = new ArrayList<>();
-        for (String part : parts) {
-            String trimmed = part.trim();
-            if (!trimmed.isEmpty()) {
-                out.add(trimmed);
+        StringBuilder current = new StringBuilder();
+        int depth = 0;
+        for (int i = 0; i < normalized.length(); i++) {
+            char c = normalized.charAt(i);
+            if (c == '(') {
+                depth++;
+                current.append(c);
+                continue;
             }
+            if (c == ')') {
+                depth = Math.max(0, depth - 1);
+                current.append(c);
+                continue;
+            }
+            if (c == ',' && depth == 0) {
+                String token = current.toString().trim();
+                if (!token.isEmpty()) {
+                    out.add(token);
+                }
+                current.setLength(0);
+                continue;
+            }
+            current.append(c);
+        }
+        String tail = current.toString().trim();
+        if (!tail.isEmpty()) {
+            out.add(tail);
         }
         return out;
     }
@@ -202,24 +216,12 @@ public final class RequestParsing {
             return null;
         }
 
-        Matcher parenType = Pattern.compile("(?i)^([A-Za-z][A-Za-z0-9_]*)\\s*\\(\\s*([A-Za-z][A-Za-z0-9]*)\\s*\\)\\s*(.*)$").matcher(cleaned);
+        Matcher parenType = Pattern.compile("(?i)^([A-Za-z][A-Za-z0-9_]*)\\s*\\(\\s*([^)]+)\\s*\\)\\s*(.*)$").matcher(cleaned);
         if (parenType.find()) {
             String name = parenType.group(1);
-            String type = parenType.group(2);
+            String descriptor = parenType.group(2) == null ? "" : parenType.group(2);
             String tail = parenType.group(3) == null ? "" : parenType.group(3);
-            return new ParsedField(
-                    name,
-                    type,
-                    containsNullable(tail),
-                    containsUnique(tail),
-                    extractMin(tail),
-                    extractMax(tail),
-                    extractFormat(tail),
-                    containsEncrypted(tail),
-                    extractEnumValues(tail),
-                    extractDefault(tail),
-                    extractCalculated(tail)
-            );
+            return parseParenthesizedField(name, descriptor, tail);
         }
 
         Matcher typed = Pattern.compile("(?i)^([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9]*)\\s*(.*)$").matcher(cleaned);
@@ -265,6 +267,37 @@ public final class RequestParsing {
         );
     }
 
+    private static ParsedField parseParenthesizedField(String name, String descriptor, String tail) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String content = (descriptor == null ? "" : descriptor.trim());
+        if (content.isEmpty()) {
+            return null;
+        }
+        String[] parts = content.split("[,\\s]+", 2);
+        String type = parts[0];
+        String remaining = parts.length > 1 ? parts[1] : "";
+        if ("enum".equalsIgnoreCase(type)) {
+            type = "string";
+            remaining = "enum: " + remaining;
+        }
+        String mergedTail = (remaining + " " + (tail == null ? "" : tail)).trim();
+        return new ParsedField(
+                name,
+                type,
+                containsNullable(mergedTail),
+                containsUnique(mergedTail),
+                extractMin(mergedTail),
+                extractMax(mergedTail),
+                extractFormat(mergedTail),
+                containsEncrypted(mergedTail),
+                extractEnumValues(mergedTail),
+                extractDefault(mergedTail),
+                extractCalculated(mergedTail)
+        );
+    }
+
     private static boolean containsNullable(String text) {
         String lower = text == null ? "" : text.toLowerCase(Locale.ROOT);
         return lower.contains("optional") || lower.contains("nullable") || lower.contains("null");
@@ -281,17 +314,29 @@ public final class RequestParsing {
     }
 
     private static Integer extractMin(String text) {
-        return extractInt(text, "(?i)\\bmin\\s*[:=]\\s*(\\d+)");
+        Integer fromExplicit = extractInt(text, "(?i)\\bmin\\s*[:=]?\\s*(\\d+)");
+        if (fromExplicit != null) {
+            return fromExplicit;
+        }
+        return extractInt(text, "(?i)\\bminimum\\s*[:=]?\\s*(\\d+)");
     }
 
     private static Integer extractMax(String text) {
-        return extractInt(text, "(?i)\\bmax\\s*[:=]\\s*(\\d+)");
+        Integer fromExplicit = extractInt(text, "(?i)\\bmax\\s*[:=]?\\s*(\\d+)");
+        if (fromExplicit != null) {
+            return fromExplicit;
+        }
+        return extractInt(text, "(?i)\\bmaximum\\s*[:=]?\\s*(\\d+)");
     }
 
     private static String extractFormat(String text) {
-        Matcher matcher = Pattern.compile("(?i)\\bformat\\s*[:=]\\s*([A-Za-z0-9_-]+)").matcher(text == null ? "" : text);
+        String source = text == null ? "" : text;
+        Matcher matcher = Pattern.compile("(?i)\\bformat\\s*[:=]?\\s*([A-Za-z0-9_-]+)").matcher(source);
         if (matcher.find()) {
             return matcher.group(1);
+        }
+        if (source.toLowerCase(Locale.ROOT).contains("valid email")) {
+            return "email";
         }
         return null;
     }

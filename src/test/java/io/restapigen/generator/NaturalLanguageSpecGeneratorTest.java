@@ -104,4 +104,26 @@ class NaturalLanguageSpecGeneratorTest {
         assertEquals("OneToMany", definition.relationships.get(1).type);
         assertEquals("ManyToMany", definition.relationships.get(2).type);
     }
+
+    @Test
+    void generatesAdvancedValidationTokens() {
+        String request = """
+                Create an API for Product with:
+                - price (decimal, required, min 0, max 1000)
+                - status (string, enum: ACTIVE, INACTIVE)
+                - ownerEmail (string, required, valid email)
+                """;
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
+        EntityDefinition definition = spec.entities.get(0);
+
+        FieldSpec price = definition.entity.fields.stream().filter(field -> "price".equals(field.name)).findFirst().orElseThrow();
+        assertTrue(price.validation.contains("DecimalMin:0"));
+        assertTrue(price.validation.contains("DecimalMax:1000"));
+
+        FieldSpec status = definition.entity.fields.stream().filter(field -> "status".equals(field.name)).findFirst().orElseThrow();
+        assertTrue(status.validation.stream().anyMatch(token -> token.startsWith("OneOf:")));
+
+        FieldSpec ownerEmail = definition.entity.fields.stream().filter(field -> "ownerEmail".equals(field.name)).findFirst().orElseThrow();
+        assertTrue(ownerEmail.validation.contains("Email"));
+    }
 }

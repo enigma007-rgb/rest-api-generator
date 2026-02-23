@@ -110,7 +110,7 @@ public final class NaturalLanguageSpecGenerator {
             String defaultValue = parsed.defaultValue();
             String calculatedExpression = parsed.calculatedExpression();
 
-            List<String> validation = buildValidationTokens(camel, type, nullable, min, max, format);
+            List<String> validation = buildValidationTokens(camel, type, nullable, min, max, format, enumValues);
 
             fields.add(new FieldSpec(
                     camel,
@@ -147,14 +147,15 @@ public final class NaturalLanguageSpecGenerator {
             boolean nullable,
             Integer min,
             Integer max,
-            String format
+            String format,
+            List<String> enumValues
     ) {
-        if (nullable) {
-            return List.of();
-        }
         List<String> validation = new ArrayList<>();
-        if ("String".equals(type)) {
+        if (!nullable && "String".equals(type)) {
             validation.add("NotBlank");
+        }
+
+        if ("String".equals(type)) {
             if ("email".equalsIgnoreCase(format) || fieldName.toLowerCase(Locale.ROOT).contains("email")) {
                 validation.add("Email");
             }
@@ -163,13 +164,24 @@ public final class NaturalLanguageSpecGenerator {
             } else if (TypeInference.looksLikeNameField(fieldName)) {
                 validation.add("Size:2:50");
             }
-        } else if ("Integer".equals(type) || "Long".equals(type) || "BigDecimal".equals(type) || "Double".equals(type)) {
+        } else if ("Integer".equals(type) || "Long".equals(type)) {
             if (min != null) {
                 validation.add("Min:" + min);
             }
             if (max != null) {
                 validation.add("Max:" + max);
             }
+        } else if ("BigDecimal".equals(type) || "Double".equals(type)) {
+            if (min != null) {
+                validation.add("DecimalMin:" + min);
+            }
+            if (max != null) {
+                validation.add("DecimalMax:" + max);
+            }
+        }
+
+        if (!enumValues.isEmpty()) {
+            validation.add("OneOf:" + String.join("|", enumValues));
         }
         return List.copyOf(validation);
     }

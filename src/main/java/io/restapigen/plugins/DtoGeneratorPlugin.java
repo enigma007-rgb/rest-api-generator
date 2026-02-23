@@ -61,6 +61,36 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
                 return "Size(min = " + parts[1] + ", max = " + parts[2] + ")";
             }
         }
+        if (token.startsWith("Min:")) {
+            String[] parts = token.split(":");
+            if (parts.length == 2) {
+                return "Min(" + parts[1] + ")";
+            }
+        }
+        if (token.startsWith("Max:")) {
+            String[] parts = token.split(":");
+            if (parts.length == 2) {
+                return "Max(" + parts[1] + ")";
+            }
+        }
+        if (token.startsWith("DecimalMin:")) {
+            String[] parts = token.split(":");
+            if (parts.length == 2) {
+                return "DecimalMin(\"" + parts[1] + "\")";
+            }
+        }
+        if (token.startsWith("DecimalMax:")) {
+            String[] parts = token.split(":");
+            if (parts.length == 2) {
+                return "DecimalMax(\"" + parts[1] + "\")";
+            }
+        }
+        if (token.startsWith("OneOf:")) {
+            String[] parts = token.split(":", 2);
+            if (parts.length == 2) {
+                return "Pattern(regexp = \"^(" + parts[1] + ")$\")";
+            }
+        }
         return token;
     }
 }
