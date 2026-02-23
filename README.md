@@ -183,3 +183,14 @@ Pack descriptors:
 
 Runtime templates:
 - `src/main/resources/templates/spring-boot-3-standard/`
+
+## Roadmap
+
+- CLI: `generate --zip` convenience option to write scaffold.zip directly
+- Templates: expand microservices + DDD starter packs
+- Docs: add more real-world prompt examples and troubleshooting
+- Quality: add more integration tests around generated projects
+
+## Contributing
+
+See `CONTRIBUTING.md` for setup, workflow, and PR guidance.
